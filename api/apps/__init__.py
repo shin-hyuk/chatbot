@@ -138,6 +138,10 @@ client_urls_prefix = [
     register_page(path) for dir in pages_dir for path in search_pages_path(dir)
 ]
 
+# Register the centralized API - it has no URL prefix as it defines its own complete URLs
+from api.apps.centralized_api import manager as centralized_api_manager
+app.register_blueprint(centralized_api_manager)
+
 
 @login_manager.request_loader
 def load_user(web_request):
