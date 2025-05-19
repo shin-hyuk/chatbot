@@ -338,13 +338,7 @@ docker build --platform linux/amd64 -f Dockerfile -t infiniflow/ragflow:nightly 
    sudo yum install jemalloc
    ```
    
-6. Launch backend service:
-
-   ```bash
-   source .venv/bin/activate
-   export PYTHONPATH=$(pwd)
-   bash docker/launch_backend_service.sh
-   ```
+6. Launch backend service:   ```bash   source .venv/bin/activate   export PYTHONPATH=$(pwd)      # Launch using Flask backend (current default)   bash docker/launch_backend_service.sh      # Or launch using the new FastAPI backend   bash start_fastapi.sh   ```
 
 7. Install frontend dependencies:
 
