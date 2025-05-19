@@ -6,7 +6,7 @@ set -e
 # Usage and command-line argument parsing
 # -----------------------------------------------------------------------------
 function usage() {
-    echo "Usage: $0 [--disable-webserver] [--disable-taskexecutor] [--consumer-no-beg=<num>] [--consumer-no-end=<num>] [--workers=<num>] [--host-id=<string>]"
+    echo "Usage: $0 [--disable-webserver] [--disable-taskexecutor] [--consumer-no-beg=<num>] [--consumer-no-end=<num>] [--workers=<num>] [--host-id=<string>] [--fastapi]"
     echo
     echo "  --disable-webserver             Disables the web server (nginx + ragflow_server)."
     echo "  --disable-taskexecutor          Disables task executor workers."
@@ -15,18 +15,21 @@ function usage() {
     echo "  --consumer-no-end=<num>         End range for consumers (if using range-based)."
     echo "  --workers=<num>                 Number of task executors to run (if range is not used)."
     echo "  --host-id=<string>              Unique ID for the host (defaults to \`hostname\`)."
+    echo "  --fastapi                       Run the FastAPI server instead of the regular server."
     echo
     echo "Examples:"
     echo "  $0 --disable-taskexecutor"
     echo "  $0 --disable-webserver --consumer-no-beg=0 --consumer-no-end=5"
     echo "  $0 --disable-webserver --workers=2 --host-id=myhost123"
     echo "  $0 --enable-mcpserver"
+    echo "  $0 --fastapi"
     exit 1
 }
 
 ENABLE_WEBSERVER=1 # Default to enable web server
 ENABLE_TASKEXECUTOR=1  # Default to enable task executor
 ENABLE_MCP_SERVER=0
+USE_FASTAPI=0  # Default to use regular server, not FastAPI
 CONSUMER_NO_BEG=0
 CONSUMER_NO_END=0
 WORKERS=1
@@ -65,6 +68,10 @@ for arg in "$@"; do
       ;;
     --enable-mcpserver)
       ENABLE_MCP_SERVER=1
+      shift
+      ;;
+    --fastapi)
+      USE_FASTAPI=1
       shift
       ;;
     --mcp-host=*)
@@ -126,7 +133,13 @@ while IFS= read -r line || [[ -n "$line" ]]; do
 done < "${TEMPLATE_FILE}"
 
 export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/"
-PY=python3
+
+# Use virtual environment's Python if it exists
+if [ -f "${VIRTUAL_ENV}/bin/python" ]; then
+    PY="${VIRTUAL_ENV}/bin/python"
+else
+    PY=python3
+fi
 
 # -----------------------------------------------------------------------------
 # Function(s)
@@ -161,10 +174,16 @@ if [[ "${ENABLE_WEBSERVER}" -eq 1 ]]; then
     echo "Starting nginx..."
     /usr/sbin/nginx
 
-    echo "Starting ragflow_server..."
-    while true; do
-        "$PY" api/ragflow_server.py
-    done &
+    if [[ "${USE_FASTAPI}" -eq 1 ]]; then
+        echo "Starting FastAPI server using ${PY}..."
+        cd /ragflow
+        "$PY" -m api.fastapi_server
+    else
+        echo "Starting ragflow_server..."
+        while true; do
+            "$PY" api/ragflow_server.py
+        done &
+    fi
 fi
 
 
