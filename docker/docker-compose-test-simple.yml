@@ -1,0 +1,9 @@
+version: '3'
+services:
+  ragflow-test:
+    image: infiniflow/ragflow:v0.18.0-slim
+    container_name: ragflow-test
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["apt-get update && apt-get install -y bash && echo 'Bash is now installed' && tail -f /dev/null"]
+    environment:
+      - SANDBOX_EXECUTOR_MANAGER_PORT=9385 
